@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pedido semanal — OTTI.PASTA</title>
+<style>
+  :root {
+    --olive: #c1622d;
+    --olive-dark: #97481f;
+    --cream: #fbf1e1;
+    --card: #fffdf9;
+    --text: #3a2a1e;
+    --muted: #8c7360;
+    --border: #ead7bb;
+    --danger: #b3402f;
+    --ok: #5f8b3d;
+    --bg: var(--cream);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #21170f;
+      --card: #2c2018;
+      --text: #f5e9da;
+      --muted: #c9af95;
+      --border: #4a3826;
+      --cream: #2c2018;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .brand { text-align: center; margin-bottom: 4px; }
+  .brand h1 { color: var(--olive); font-size: 1.6rem; margin: 0; letter-spacing: 0.02em; }
+  .brand p { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+  .week-banner {
+    background: var(--olive);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    text-align: center;
+    font-size: 0.9rem;
+    margin: 16px 0 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  label { display: block; font-weight: 600; font-size: 0.9rem; margin: 14px 0 6px; }
+  label.first { margin-top: 0; }
+  input[type="text"], input[type="tel"], textarea, select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  .hint { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+  .maplink { display: inline-block; margin-top: 6px; font-size: 0.85rem; color: var(--olive); text-decoration: none; font-weight: 600; }
+  .maplink:hover { text-decoration: underline; }
+  .days { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .day-chip {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    background: var(--bg);
+  }
+  .day-chip input { margin: 0; }
+  .meals { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .meal-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    background: var(--bg);
+  }
+  .meal-item input { margin: 2px 0 0; flex-shrink: 0; }
+  .meal-item.disabled { opacity: 0.4; cursor: default; }
+  .meal-counter { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+  .meal-counter.full { color: var(--olive); font-weight: 600; }
+  button.submit {
+    width: 100%;
+    margin-top: 20px;
+    background: var(--olive);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.submit:disabled { opacity: 0.6; cursor: default; }
+  button.submit:hover:not(:disabled) { background: var(--olive-dark); }
+  .status { margin-top: 12px; font-size: 0.9rem; text-align: center; }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--danger); }
+  .success-box { text-align: center; padding: 30px 10px; }
+  .success-box .check { font-size: 2.4rem; }
+  .success-box h2 { margin: 8px 0 4px; color: var(--olive); }
+  .success-box p { color: var(--muted); margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <h1>OTTI.PASTA</h1>
+    <p>Pedido semanal</p>
+  </div>
+
+  <div class="week-banner" id="weekBanner">Cargando semana…</div>
+
+  <div class="card" id="formCard">
+    <form id="orderForm">
+      <label class="first" for="nombre">Nombre y apellido</label>
+      <input type="text" id="nombre" required autocomplete="name" />
+
+      <label for="telefono">Teléfono / WhatsApp</label>
+      <input type="tel" id="telefono" required autocomplete="tel" placeholder="Ej: 11 2345 6789" />
+
+      <label for="zona">Zona / dirección específica</label>
+      <textarea id="zona" required placeholder="Ej: Av. Corrientes 1234, piso 3 depto B, entre Callao y Rodríguez Peña"></textarea>
+      <a href="#" id="mapLink" class="maplink" target="_blank" rel="noopener" style="display:none">📍 Ver esta dirección en Google Maps</a>
+      <div class="hint">Cuanto más específica, mejor: calle, altura, piso/depto y una referencia.</div>
+
+      <label>Días que querés recibir tu comida esta semana</label>
+      <div class="days" id="daysWrap"></div>
+
+      <label>Comida (elegí hasta 4 platos)</label>
+      <div class="meals" id="mealsWrap"></div>
+      <div class="meal-counter" id="mealCounter">0 de 4 elegidos</div>
+
+      <label for="horario">Horario estimado</label>
+      <select id="horario" required>
+        <option value="">Elegí un horario</option>
+        <option value="12:00 a 13:00">12:00 a 13:00 hs</option>
+        <option value="13:00 a 14:00">13:00 a 14:00 hs</option>
+      </select>
+
+      <label for="comentarios">Observaciones (alergias, instrucciones de entrega, etc.)</label>
+      <textarea id="comentarios" placeholder="Opcional"></textarea>
+
+      <button type="submit" class="submit" id="submitBtn">Confirmar pedido</button>
+      <div class="status" id="statusMsg"></div>
+    </form>
+  </div>
+
+  <div class="card success-box" id="successCard" style="display:none">
+    <div class="check">✅</div>
+    <h2>¡Pedido recibido!</h2>
+    <p>Te contactamos para confirmar los platos de la semana. Gracias por sumarte a OTTI 💚</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DAY_NAMES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  var MAX_MEALS = 4;
+  var MEALS = [
+    "Pollo a la mostaza y vino blanco + puré de papas y verdeo",
+    "Albóndigas de carne + salsa de tomate y fideos",
+    "Pollo provenzal + papas rústicas",
+    "Sorrentinos/ravioles caseros + tomate, albahaca y pollo",
+    "Bondiola de cerdo al limón y ajo + papas rústicas",
+    "Pollo al vino blanco + puré de calabaza y espinaca",
+    "Fideos con tomate, ajo, albahaca + pollo",
+    "Canelones de espinaca, ricotta y salsa de tomate",
+    "Merluza dorada al limón y hierbas + papas doradas + ensalada fresca"
+  ];
+
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function fmtShort(d) { return pad(d.getDate()) + "/" + pad(d.getMonth() + 1); }
+  function isoDate(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  function getWeekMonday() {
+    var now = new Date();
+    var day = now.getDay();
+    var diff = day === 0 ? 1 : 1 - day;
+    var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
+    return monday;
+  }
+
+  var monday = getWeekMonday();
+  var weekDates = [];
+  for (var i = 0; i < 5; i++) {
+    weekDates.push(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
+  }
+  var weekStartIso = isoDate(monday);
+
+  document.getElementById("weekBanner").textContent =
+    "Pedido para la semana del " + fmtShort(weekDates[0]) + " al " + fmtShort(weekDates[4]);
+
+  var daysWrap = document.getElementById("daysWrap");
+  weekDates.forEach(function (d, idx) {
+    var id = "day" + idx;
+    var label = document.createElement("label");
+    label.className = "day-chip";
+    label.setAttribute("for", id);
+    var input = document.createElement("input");
+    input.type = "checkbox";
+    input.id = id;
+    input.value = DAY_NAMES[idx];
+    var span = document.createElement("span");
+    span.textContent = DAY_NAMES[idx] + " " + fmtShort(d);
+    label.appendChild(input);
+    label.appendChild(span);
+    daysWrap.appendChild(label);
+  });
+
+  var mealsWrap = document.getElementById("mealsWrap");
+  var mealCounter = document.getElementById("mealCounter");
+  MEALS.forEach(function (m, idx) {
+    var id = "meal" + idx;
+    var label = document.createElement("label");
+    label.className = "meal-item";
+    label.setAttribute("for", id);
+    var input = document.createElement("input");
+    input.type = "checkbox";
+    input.id = id;
+    input.value = m;
+    var span = document.createElement("span");
+    span.textContent = m;
+    label.appendChild(input);
+    label.appendChild(span);
+    mealsWrap.appendChild(label);
+  });
+
+  function updateMealsState() {
+    var checked = mealsWrap.querySelectorAll("input:checked");
+    var count = checked.length;
+    mealCounter.textContent = count + " de " + MAX_MEALS + " elegidos";
+    mealCounter.className = "meal-counter" + (count >= MAX_MEALS ? " full" : "");
+    var all = mealsWrap.querySelectorAll(".meal-item");
+    for (var i = 0; i < all.length; i++) {
+      var item = all[i];
+      var box = item.querySelector("input");
+      if (!box.checked && count >= MAX_MEALS) {
+        box.disabled = true;
+        item.classList.add("disabled");
+      } else {
+        box.disabled = false;
+        item.classList.remove("disabled");
+      }
+    }
+  }
+  mealsWrap.addEventListener("change", updateMealsState);
+  updateMealsState();
+
+  var zonaInput = document.getElementById("zona");
+  var mapLink = document.getElementById("mapLink");
+  zonaInput.addEventListener("input", function () {
+    var val = zonaInput.value.trim();
+    if (val.length > 4) {
+      mapLink.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(val);
+      mapLink.style.display = "inline-block";
+    } else {
+      mapLink.style.display = "none";
+    }
+  });
+
+  function setStatus(msg, kind) {
+    var el = document.getElementById("statusMsg");
+    el.textContent = msg || "";
+    el.className = "status" + (kind ? " " + kind : "");
+  }
+
+  var form = document.getElementById("orderForm");
+  var submitBtn = document.getElementById("submitBtn");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    setStatus("", "");
+
+    var nombre = document.getElementById("nombre").value.trim();
+    var telefono = document.getElementById("telefono").value.trim();
+    var zona = zonaInput.value.trim();
+    var horario = document.getElementById("horario").value;
+    var comentarios = document.getElementById("comentarios").value.trim();
+    var dias = Array.prototype.slice.call(daysWrap.querySelectorAll("input:checked")).map(function (i) { return i.value; });
+    var comidas = Array.prototype.slice.call(mealsWrap.querySelectorAll("input:checked")).map(function (i) { return i.value; });
+
+    if (!nombre || !telefono || !zona || !horario) {
+      setStatus("Completá nombre, teléfono, zona y horario.", "err");
+      return;
+    }
+    if (dias.length === 0) {
+      setStatus("Elegí al menos un día de la semana.", "err");
+      return;
+    }
+    if (comidas.length === 0) {
+      setStatus("Elegí al menos un plato.", "err");
+      return;
+    }
+    if (comidas.length > MAX_MEALS) {
+      setStatus("Podés elegir como máximo " + MAX_MEALS + " platos.", "err");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Enviando…";
+
+    fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: nombre,
+        telefono: telefono,
+        zona: zona,
+        dias: dias,
+        comidas: comidas,
+        horario: horario,
+        comentarios: comentarios,
+        weekStart: weekStartIso
+      })
+    }).then(function (res) {
+      if (!res.ok) throw new Error("bad_response");
+      return res.json();
+    }).then(function () {
+      document.getElementById("formCard").style.display = "none";
+      document.getElementById("successCard").style.display = "block";
+    }).catch(function () {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Confirmar pedido";
+      setStatus("Ocurrió un problema al enviar. Probá de nuevo o escribinos directo.", "err");
+    });
+  });
+})();
+</script>
+</body>
+</html>
